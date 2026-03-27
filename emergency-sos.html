@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>SafeAlert – Emergency SOS</title>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet"/>
+  <style>
+    :root {
+      --red: #ff2233;
+      --red-dark: #aa0011;
+      --red-glow: rgba(255,34,51,0.35);
+      --bg: #0d0d12;
+      --surface: #15151e;
+      --surface2: #1e1e2a;
+      --border: rgba(255,255,255,0.08);
+      --text: #f0f0f5;
+      --muted: rgba(240,240,245,0.45);
+      --green: #22dd88;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      font-family: 'Nunito', sans-serif;
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 0 0 40px;
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    /* BG grid */
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      background-image:
+        linear-gradient(rgba(255,34,51,0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,34,51,0.04) 1px, transparent 1px);
+      background-size: 36px 36px;
+      pointer-events: none; z-index: 0;
+    }
+
+    /* Glow blob */
+    body::after {
+      content: '';
+      position: fixed;
+      top: -80px; left: 50%; transform: translateX(-50%);
+      width: 500px; height: 300px;
+      background: radial-gradient(ellipse, rgba(255,34,51,0.12) 0%, transparent 70%);
+      pointer-events: none; z-index: 0;
+    }
+
+    .app {
+      width: 100%; max-width: 420px;
+      position: relative; z-index: 1;
+      display: flex; flex-direction: column;
+      align-items: center; gap: 0;
+    }
+
+    /* ── HEADER ── */
+    header {
+      width: 100%;
+      padding: 22px 24px 16px;
+      display: flex; justify-content: space-between; align-items: center;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .logo {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 22px; letter-spacing: 3px;
+      color: var(--red);
+    }
+
+    .live-badge {
+      display: flex; align-items: center; gap: 6px;
+      background: rgba(34,221,136,0.1);
+      border: 1px solid rgba(34,221,136,0.2);
+      border-radius: 20px;
+      padding: 4px 12px;
+      font-size: 11px; font-weight: 700;
+      color: var(--green); letter-spacing: 1px;
+    }
+
+    .live-dot {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: var(--green);
+      animation: blink 1.4s ease-in-out infinite;
+    }
+
+    /* ── SOS SECTION ── */
+    .sos-section {
+      width: 100%;
+      display: flex; flex-direction: column;
+      align-items: center;
+      padding: 36px 24px 28px;
+      gap: 28px;
+    }
+
+    .sos-label {
+      font-size: 11px; font-weight: 700;
+      letter-spacing: 4px; color: var(--muted);
+      text-transform: uppercase;
+    }
+
+    /* Button wrapper with rings */
+    .sos-outer {
+      position: relative;
+      width: 200px; height: 200px;
+      display: flex; align-items: center; justify-content: center;
+    }
+
+    .ring {
+      position: absolute;
+      border-radius: 50%;
+      border: 1.5px solid rgba(255,34,51,0.25);
+      animation: expandRing 3s ease-out infinite;
+      pointer-events: none;
+    }
+    .ring:nth-child(1) { width: 200px; height: 200px; animation-delay: 0s; }
+    .ring:nth-child(2) { width: 200px; height: 200px; animation-delay: 1s; }
+    .ring:nth-child(3) { width: 200px; height: 200px; animation-delay: 2s; }
+
+    .sos-btn {
+      width: 156px; height: 156px;
+      border-radius: 50%;
+      border: none;
+      cursor: pointer;
+      position: relative; z-index: 2;
+      background: radial-gradient(circle at 38% 35%, #ff4455, #cc0011);
+      box-shadow:
+        0 0 0 6px rgba(255,34,51,0.1),
+        0 0 40px rgba(255,34,51,0.3),
+        0 12px 40px rgba(0,0,0,0.6);
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 2px;
+      transition: transform 0.12s ease, box-shadow 0.15s ease;
+      user-select: none;
+    }
+
+    .sos-btn:hover {
+      transform: scale(1.04);
+      box-shadow: 0 0 0 8px rgba(255,34,51,0.15), 0 0 60px rgba(255,34,51,0.45), 0 16px 48px rgba(0,0,0,0.6);
+    }
+
+    .sos-btn:active { transform: scale(0.96); }
+
+    .sos-btn.triggered {
+      background: radial-gradient(circle at 38% 35%, #ff6677, #ee1122);
+      animation: sosPulse 1.2s ease-in-out infinite;
+    }
+
+    .sos-btn.counting {
+      background: radial-gradient(circle at 38% 35%, #ff8844, #cc4400);
+    }
+
+    .btn-icon { font-size: 28px; line-height: 1; }
+    .btn-main {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 42px; letter-spacing: 4px;
+      color: #fff; line-height: 1;
+    }
+    .btn-sub {
+      font-size: 10px; font-weight: 700;
+      color: rgba(255,255,255,0.65);
+      letter-spacing: 1px;
+    }
+
+    /* countdown number override */
+    .countdown-num {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 68px; color: #fff; line-height: 1;
+    }
+
+    /* ── ALERT TOAST ── */
+    .toast {
+      width: 100%;
+      background: linear-gradient(135deg, rgba(255,34,51,0.18), rgba(140,0,20,0.12));
+      border: 1px solid rgba(255,34,51,0.35);
+      border-radius: 16px;
+      padding: 16px 18px;
+      display: none;
+      flex-direction: column; gap: 12px;
+      backdrop-filter: blur(8px);
+      animation: slideDown 0.4s cubic-bezier(0.34,1.56,0.64,1) forwards;
+    }
+    .toast.show { display: flex; }
+
+    .toast-title {
+      display: flex; align-items: center; gap: 10px;
+      font-size: 14px; font-weight: 800;
+      color: #ff4455; letter-spacing: 0.5px;
+    }
+
+    .toast-meta {
+      display: flex; gap: 10px; flex-wrap: wrap;
+    }
+    .toast-chip {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 8px; padding: 5px 10px;
+      font-size: 11px; font-weight: 600;
+      color: rgba(255,255,255,0.7);
+      display: flex; align-items: center; gap: 5px;
+    }
+
+    /* Sending feed */
+    .feed {
+      display: flex; flex-direction: column; gap: 6px;
+    }
+    .feed-item {
+      display: flex; align-items: center; gap: 10px;
+      font-size: 12px; font-weight: 600;
+      color: rgba(255,255,255,0.55);
+      opacity: 0;
+      animation: fadeUp 0.4s ease forwards;
+    }
+    .feed-item.done { color: var(--green); }
+    .feed-dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: currentColor; flex-shrink: 0;
+    }
+
+    /* ── CONTACTS ── */
+    .section {
+      width: 100%;
+      padding: 0 20px;
+      display: flex; flex-direction: column; gap: 10px;
+    }
+    .section-title {
+      font-size: 10px; font-weight: 800;
+      letter-spacing: 3px; color: var(--muted);
+      text-transform: uppercase; padding-left: 4px;
+    }
+    .contact-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 13px 16px;
+      display: flex; align-items: center; gap: 14px;
+      transition: border-color 0.2s;
+    }
+    .contact-card:hover { border-color: rgba(255,34,51,0.2); }
+    .contact-card.alerted { border-color: rgba(34,221,136,0.25); }
+
+    .avatar {
+      width: 42px; height: 42px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 19px; flex-shrink: 0;
+      border: 1.5px solid var(--border);
+    }
+    .avatar.amma  { background: rgba(255,100,180,0.1); border-color: rgba(255,100,180,0.2); }
+    .avatar.friend{ background: rgba(100,180,255,0.1); border-color: rgba(100,180,255,0.2); }
+    .avatar.police{ background: rgba(100,140,255,0.1); border-color: rgba(100,140,255,0.2); }
+
+    .contact-info { flex: 1; }
+    .contact-name { font-size: 14px; font-weight: 700; }
+    .contact-rel  { font-size: 11px; color: var(--muted); margin-top: 1px; }
+    .contact-phone{ font-size: 11px; color: var(--muted); margin-top: 2px; font-weight: 600; }
+
+    .contact-status {
+      font-size: 10px; font-weight: 800; letter-spacing: 1px;
+      padding: 3px 10px; border-radius: 20px;
+      border: 1px solid;
+      transition: all 0.3s;
+    }
+    .status-idle {
+      color: rgba(255,255,255,0.3);
+      border-color: rgba(255,255,255,0.1);
+      background: transparent;
+    }
+    .status-sent {
+      color: var(--green);
+      border-color: rgba(34,221,136,0.3);
+      background: rgba(34,221,136,0.08);
+    }
+
+    /* ── INFO STRIP ── */
+    .info-strip {
+      width: 100%;
+      padding: 0 20px;
+      display: grid; grid-template-columns: 1fr 1fr 1fr;
+      gap: 8px;
+    }
+    .info-chip {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 10px 8px;
+      text-align: center;
+      display: flex; flex-direction: column; gap: 3px;
+    }
+    .info-chip-icon { font-size: 18px; }
+    .info-chip-val  { font-size: 11px; font-weight: 700; }
+    .info-chip-lbl  { font-size: 9px; color: var(--muted); font-weight: 600; letter-spacing: 0.5px; }
+
+    /* ── RESET ── */
+    .reset-btn {
+      margin-top: 4px;
+      background: transparent;
+      border: 1px solid rgba(255,34,51,0.3);
+      border-radius: 50px;
+      color: rgba(255,80,100,0.7);
+      padding: 9px 28px;
+      font-size: 12px; font-weight: 700;
+      cursor: pointer;
+      font-family: 'Nunito', sans-serif;
+      transition: all 0.2s;
+      letter-spacing: 0.5px;
+      display: none;
+    }
+    .reset-btn:hover { background: rgba(255,34,51,0.08); color: #ff4455; }
+    .reset-btn.show { display: block; }
+
+    /* ── KEYFRAMES ── */
+    @keyframes expandRing {
+      0%   { transform: scale(1); opacity: 0.5; }
+      100% { transform: scale(1.7); opacity: 0; }
+    }
+    @keyframes sosPulse {
+      0%,100% { box-shadow: 0 0 0 6px rgba(255,34,51,0.15), 0 0 40px rgba(255,34,51,0.3); }
+      50%      { box-shadow: 0 0 0 18px rgba(255,34,51,0.0), 0 0 70px rgba(255,34,51,0.5); }
+    }
+    @keyframes blink {
+      0%,100% { opacity: 1; } 50% { opacity: 0.3; }
+    }
+    @keyframes slideDown {
+      from { opacity: 0; transform: translateY(-12px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(6px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- HEADER -->
+  <header>
+    <div class="logo">🛡 SAFEALERT</div>
+    <div class="live-badge"><span class="live-dot"></span> PROTECTED</div>
+  </header>
+
+  <!-- SOS BUTTON AREA -->
+  <div class="sos-section">
+    <div class="sos-label">Emergency Trigger</div>
+
+    <div class="sos-outer">
+      <div class="ring"></div>
+      <div class="ring"></div>
+      <div class="ring"></div>
+
+      <button class="sos-btn" id="sosBtn" onclick="handleSOS()">
+        <span class="btn-icon" id="btnIcon">🚨</span>
+        <span class="btn-main" id="btnMain">SOS</span>
+        <span class="btn-sub"  id="btnSub">TAP TO SEND</span>
+      </button>
+    </div>
+
+    <!-- TOAST ALERT -->
+    <div class="toast" id="toast">
+      <div class="toast-title">
+        ⚠️ &nbsp;SOS ALERT SENT SUCCESSFULLY
+      </div>
+      <div class="toast-meta">
+        <div class="toast-chip">📍 Kattur, Coimbatore</div>
+        <div class="toast-chip" id="toastTime">⏰ --:--</div>
+        <div class="toast-chip">📡 Location Shared</div>
+      </div>
+      <div class="feed" id="feed"></div>
+    </div>
+
+    <button class="reset-btn" id="resetBtn" onclick="resetSOS()">✕ &nbsp;Cancel Alert</button>
+  </div>
+
+  <!-- EMERGENCY CONTACTS -->
+  <div class="section">
+    <div class="section-title">Emergency Contacts</div>
+
+    <div class="contact-card" id="card-0">
+      <div class="avatar amma">👩</div>
+      <div class="contact-info">
+        <div class="contact-name">Amma</div>
+        <div class="contact-rel">Mother</div>
+        <div class="contact-phone">+91 98765 43210</div>
+      </div>
+      <div class="contact-status status-idle" id="status-0">STANDBY</div>
+    </div>
+
+    <div class="contact-card" id="card-1">
+      <div class="avatar friend">👦</div>
+      <div class="contact-info">
+        <div class="contact-name">Karthik</div>
+        <div class="contact-rel">Best Friend</div>
+        <div class="contact-phone">+91 87654 32109</div>
+      </div>
+      <div class="contact-status status-idle" id="status-1">STANDBY</div>
+    </div>
+
+    <div class="contact-card" id="card-2">
+      <div class="avatar police">🚓</div>
+      <div class="contact-info">
+        <div class="contact-name">Police Helpline</div>
+        <div class="contact-rel">Emergency Services</div>
+        <div class="contact-phone">100</div>
+      </div>
+      <div class="contact-status status-idle" id="status-2">STANDBY</div>
+    </div>
+  </div>
+
+  <!-- INFO STRIP -->
+  <div style="height:18px"></div>
+  <div class="info-strip">
+    <div class="info-chip">
+      <div class="info-chip-icon">📍</div>
+      <div class="info-chip-val">Kattur</div>
+      <div class="info-chip-lbl">Location</div>
+    </div>
+    <div class="info-chip">
+      <div class="info-chip-icon">📡</div>
+      <div class="info-chip-val">4G Active</div>
+      <div class="info-chip-lbl">Signal</div>
+    </div>
+    <div class="info-chip">
+      <div class="info-chip-icon">🔋</div>
+      <div class="info-chip-val">87%</div>
+      <div class="info-chip-lbl">Battery</div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ALARM SOUND (Web Audio API) -->
+<script>
+  let triggered = false;
+  let countdownInterval = null;
+  let alarmCtx = null;
+  let alarmNodes = [];
+
+  // ── Alarm Sound ──
+  function playAlarm() {
+    try {
+      alarmCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const pattern = [880, 660, 880, 660, 880];
+      let time = alarmCtx.currentTime;
+      pattern.forEach(freq => {
+        const osc = alarmCtx.createOscillator();
+        const gain = alarmCtx.createGain();
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(freq, time);
+        gain.gain.setValueAtTime(0.18, time);
+        gain.gain.exponentialRampToValueAtTime(0.001, time + 0.18);
+        osc.connect(gain); gain.connect(alarmCtx.destination);
+        osc.start(time); osc.stop(time + 0.18);
+        alarmNodes.push(osc);
+        time += 0.22;
+      });
+    } catch(e) {}
+  }
+
+  // ── Countdown then SOS ──
+  function handleSOS() {
+    if (triggered) return;
+    let count = 3;
+    const btn    = document.getElementById('sosBtn');
+    const icon   = document.getElementById('btnIcon');
+    const main   = document.getElementById('btnMain');
+    const sub    = document.getElementById('btnSub');
+
+    btn.classList.add('counting');
+    icon.style.display = 'none';
+    sub.textContent = 'Release to cancel…';
+
+    const numEl = document.createElement('span');
+    numEl.className = 'countdown-num';
+    numEl.id = 'cnum';
+    numEl.textContent = count;
+    main.replaceWith(numEl);
+
+    countdownInterval = setInterval(() => {
+      count--;
+      if (count > 0) {
+        document.getElementById('cnum').textContent = count;
+      } else {
+        clearInterval(countdownInterval);
+        fireSOS();
+      }
+    }, 1000);
+  }
+
+  function fireSOS() {
+    triggered = true;
+    playAlarm();
+
+    const btn  = document.getElementById('sosBtn');
+    const icon = document.getElementById('btnIcon');
+    const sub  = document.getElementById('btnSub');
+    const cnum = document.getElementById('cnum');
+
+    // Restore button to SENT state
+    btn.classList.remove('counting');
+    btn.classList.add('triggered');
+    icon.style.display = '';
+    icon.textContent = '✅';
+    const newMain = document.createElement('span');
+    newMain.className = 'btn-main';
+    newMain.id = 'btnMain';
+    newMain.textContent = 'SENT';
+    cnum.replaceWith(newMain);
+    sub.textContent = 'ALERT ACTIVE';
+
+    // Show toast
+    const toast = document.getElementById('toast');
+    toast.classList.add('show');
+    const now = new Date();
+    document.getElementById('toastTime').textContent =
+      '⏰ ' + now.toLocaleTimeString('en-IN', {hour:'2-digit', minute:'2-digit'});
+
+    // Simulate feed
+    const feed = document.getElementById('feed');
+    const msgs = [
+      { text: '📩 Alerting Amma…',          idx: 0, delay: 300 },
+      { text: '📩 Alerting Karthik…',        idx: 1, delay: 800 },
+      { text: '📩 Contacting Police…',       idx: 2, delay: 1300 },
+      { text: '📍 Location shared (Kattur)', idx: -1, delay: 1800 },
+      { text: '✅ All contacts notified!',    idx: -1, delay: 2300 },
+    ];
+
+    msgs.forEach(({ text, idx, delay }) => {
+      setTimeout(() => {
+        const item = document.createElement('div');
+        item.className = 'feed-item' + (delay >= 1800 ? ' done' : '');
+        item.style.animationDelay = '0s';
+        item.innerHTML = `<span class="feed-dot"></span>${text}`;
+        feed.appendChild(item);
+
+        if (idx >= 0) {
+          document.getElementById(`status-${idx}`).textContent = '✓ SENT';
+          document.getElementById(`status-${idx}`).className = 'contact-status status-sent';
+          document.getElementById(`card-${idx}`).classList.add('alerted');
+        }
+      }, delay);
+    });
+
+    document.getElementById('resetBtn').classList.add('show');
+  }
+
+  function resetSOS() {
+    triggered = false;
+    clearInterval(countdownInterval);
+
+    // Reset button
+    const btn = document.getElementById('sosBtn');
+    btn.classList.remove('triggered','counting');
+    document.getElementById('btnIcon').textContent = '🚨';
+    document.getElementById('btnIcon').style.display = '';
+    const cur = document.getElementById('btnMain') || document.getElementById('cnum');
+    if (cur) {
+      const fresh = document.createElement('span');
+      fresh.className = 'btn-main'; fresh.id = 'btnMain'; fresh.textContent = 'SOS';
+      cur.replaceWith(fresh);
+    }
+    document.getElementById('btnSub').textContent = 'TAP TO SEND';
+
+    // Reset toast & feed
+    document.getElementById('toast').classList.remove('show');
+    document.getElementById('feed').innerHTML = '';
+
+    // Reset contacts
+    [0,1,2].forEach(i => {
+      document.getElementById(`status-${i}`).textContent = 'STANDBY';
+      document.getElementById(`status-${i}`).className = 'contact-status status-idle';
+      document.getElementById(`card-${i}`).classList.remove('alerted');
+    });
+
+    document.getElementById('resetBtn').classList.remove('show');
+    if (alarmCtx) { try { alarmCtx.close(); } catch(e){} }
+  }
+</script>
+</body>
+</html>
